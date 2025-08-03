@@ -1,0 +1,165 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local flying = false
+local velocity
+local connection
+
+function startFlying()
+    local hrp = player.Character:WaitForChild("HumanoidRootPart")
+
+    velocity = Instance.new("BodyVelocity")
+    velocity.Name = "FlyVelocity"
+    velocity.Velocity = Vector3.new(0, 0, 0)
+    velocity.MaxForce = Vector3.new(999999, 999999, 999999)
+    velocity.P = 1000
+    velocity.Parent = hrp
+
+    connection = RunService.RenderStepped:Connect(function()
+        if flying and velocity and hrp then
+            local cam = workspace.CurrentCamera
+            velocity.Velocity = cam.CFrame.LookVector * 50
+        end
+    end)
+end
+
+function stopFlying()
+    if velocity then
+        velocity:Destroy()
+        velocity = nil
+    end
+    if connection then
+        connection:Disconnect()
+        connection = nil
+    end
+end
+
+-- Aguarda o toggle ser ativado
+_G.ToggleFly = function(state)
+    flying = state
+    if flying then
+        startFlying()
+    else
+        stopFlying()
+    end
+end
+
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+   Name = "Kevin Hub",
+   Icon = 0,
+   LoadingTitle = "Kevin Scripts",
+   LoadingSubtitle = "By Kevin",
+   ShowText = "script 99 noites",
+   Theme = "Amethyst",
+   ToggleUIKeybind = "K",
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = nil,
+      FileName = "Big Hub"
+   },
+   Discord = {
+      Enabled = false,
+      Invite = "noinvitelink",
+      RememberJoins = true
+   },
+   KeySystem = false,
+   KeySettings = {
+      Title = "Untitled",
+      Subtitle = "Key System",
+      Note = "No method of obtaining the key is provided",
+      FileName = "Key",
+      SaveKey = true,
+      GrabKeyFromSite = false,
+      Key = {"Hello"}
+   }
+})
+
+local MainTab = Window:CreateTab("Main Tab", 4483362458)
+
+Rayfield:Notify({
+   Title = "Script Funcionando",
+   Content = "Primeiro script meu :)",
+   Duration = 6.5,
+   Image = 4483362458,
+})
+
+-- Botão ESP
+MainTab:CreateButton({
+   Name = "ESP Jogadores",
+   Callback = function()
+      local LocalPlayer = Players.LocalPlayer
+
+      local function criarESP(player)
+         if player == LocalPlayer then return end
+
+         player.CharacterAdded:Connect(function(character)
+            local head = character:WaitForChild("Head", 10)
+            if not head then return end
+            if head:FindFirstChild("ESP") then
+               head.ESP:Destroy()
+            end
+
+            local gui = Instance.new("BillboardGui")
+            gui.Name = "ESP"
+            gui.Adornee = head
+            gui.AlwaysOnTop = true
+            gui.Size = UDim2.new(0, 100, 0, 20)
+            gui.StudsOffset = Vector3.new(0, 2.5, 0)
+            gui.Parent = head
+
+            local label = Instance.new("TextLabel")
+            label.Size = UDim2.new(1, 0, 1, 0)
+            label.BackgroundTransparency = 1
+            label.Text = player.Name
+            label.TextColor3 = Color3.fromRGB(0, 255, 0)
+            label.TextStrokeTransparency = 0.5
+            label.Font = Enum.Font.SourceSansBold
+            label.TextScaled = true
+            label.Parent = gui
+         end)
+      end
+
+      for _, player in pairs(Players:GetPlayers()) do
+         criarESP(player)
+      end
+
+      Players.PlayerAdded:Connect(criarESP)
+   end
+})
+
+-- TOGGLE DE FLY
+MainTab:CreateToggle({
+   Name = "Fly",
+   CurrentValue = false,
+   Flag = "Toggle1",
+   Callback = function(Value)
+      if _G.ToggleFly then
+         _G.ToggleFly(Value)
+      end
+   end,
+})
+
+-- SLIDER DE WALKSPEED
+MainTab:CreateSlider({
+   Name = "WalkSpeed",
+   Range = {0, 100},
+   Increment = 10,
+   Suffix = "WS",
+   CurrentValue = 20,
+   Flag = "walkspeed",
+   Callback = function(Value)
+      local character = player.Character
+      if character then
+         local humanoid = character:FindFirstChildOfClass("Humanoid")
+         if humanoid then
+            humanoid.WalkSpeed = Value
+         end
+      end
+   end,
+})
+
+
