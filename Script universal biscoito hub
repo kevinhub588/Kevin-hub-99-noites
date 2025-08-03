@@ -1,0 +1,337 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+
+local flying = false
+local velocity
+local flyConnection
+
+function startFlying()
+    local hrp = player.Character:WaitForChild("HumanoidRootPart")
+    velocity = Instance.new("BodyVelocity")
+    velocity.Name = "FlyVelocity"
+    velocity.Velocity = Vector3.new(0, 0, 0)
+    velocity.MaxForce = Vector3.new(999999, 999999, 999999)
+    velocity.P = 1000
+    velocity.Parent = hrp
+
+    flyConnection = RunService.RenderStepped:Connect(function()
+        if flying and velocity and hrp then
+            local cam = workspace.CurrentCamera
+            velocity.Velocity = cam.CFrame.LookVector * 50
+        end
+    end)
+end
+
+function stopFlying()
+    if velocity then
+        velocity:Destroy()
+        velocity = nil
+    end
+    if flyConnection then
+        flyConnection:Disconnect()
+        flyConnection = nil
+    end
+end
+
+_G.ToggleFly = function(state)
+    flying = state
+    if flying then
+        startFlying()
+    else
+        stopFlying()
+    end
+end
+
+local noclipEnabled = false
+local noclipConnection
+
+function toggleNoclip(enabled)
+    if enabled then
+        noclipConnection = RunService.Stepped:Connect(function()
+            if player.Character then
+                for _, part in pairs(player.Character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
+                end
+            end
+        end)
+    else
+        if noclipConnection then
+            noclipConnection:Disconnect()
+            noclipConnection = nil
+        end
+        if player.Character then
+            for _, part in pairs(player.Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = true
+                end
+            end
+        end
+    end
+end
+
+local godmodeEnabled = false
+local godmodeConnection
+
+function toggleGodMode(enabled)
+    godmodeEnabled = enabled
+
+    if godmodeConnection then
+        godmodeConnection:Disconnect()
+        godmodeConnection = nil
+    end
+
+    if enabled then
+        godmodeConnection = RunService.Stepped:Connect(function()
+            local character = player.Character
+            if character then
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    humanoid.Health = humanoid.MaxHealth
+                    humanoid:GetPropertyChangedSignal("Health"):Connect(function()
+                        if godmodeEnabled and humanoid.Health < humanoid.MaxHealth then
+                            humanoid.Health = humanoid.MaxHealth
+                        end
+                    end)
+                end
+            end
+        end)
+    end
+end
+
+local aiming = false
+local aimbotConnection
+
+function toggleAimbot(state)
+    aiming = state
+    if aimbotConnection then
+        aimbotConnection:Disconnect()
+        aimbotConnection = nil
+    end
+
+    if aiming then
+        aimbotConnection = RunService.RenderStepped:Connect(function()
+            local cam = workspace.CurrentCamera
+            local closestEnemy
+            local shortestDistance = math.huge
+
+            for _, target in pairs(Players:GetPlayers()) do
+                if target ~= player and target.Team ~= player.Team and target.Character and target.Character:FindFirstChild("Head") then
+                    local headPos = target.Character.Head.Position
+                    local screenPoint, onScreen = cam:WorldToViewportPoint(headPos)
+                    if onScreen then
+                        local distance = (Vector2.new(screenPoint.X, screenPoint.Y) - Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y/2)).Magnitude
+                        if distance < shortestDistance then
+                            shortestDistance = distance
+                            closestEnemy = target
+                        end
+                    end
+                end
+            end
+
+            if closestEnemy and closestEnemy.Character and closestEnemy.Character:FindFirstChild("Head") then
+                cam.CFrame = CFrame.new(cam.CFrame.Position, closestEnemy.Character.Head.Position)
+            end
+        end)
+    end
+end
+
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+    Name = "biscoito hub",
+    Icon = 0,
+    LoadingTitle = "biscoito script",
+    LoadingSubtitle = "By Kevin//shadow",
+    ShowText = "script universal",
+    Theme = "Amethyst",
+    ToggleUIKeybind = "K",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = nil,
+        FileName = "Big Hub"
+    },
+    Discord = {
+        Enabled = false,
+        Invite = "noinvitelink",
+        RememberJoins = true
+    },
+    KeySystem = false
+})
+
+local MainTab = Window:CreateTab("Main Tab", 4483362458)
+
+Rayfield:Notify({
+    Title = "Script Funcionando",
+    Content = "Primeiro script meu :)",
+    Duration = 6.5,
+    Image = 4483362458,
+})
+
+MainTab:CreateButton({
+    Name = "esp todos players",
+    Callback = function()
+        local LocalPlayer = Players.LocalPlayer
+
+        local function criarESP(player)
+            if player == LocalPlayer then return end
+
+            player.CharacterAdded:Connect(function(character)
+                local head = character:WaitForChild("Head", 10)
+                if not head then return end
+                if head:FindFirstChild("ESP") then
+                    head.ESP:Destroy()
+                end
+
+                local gui = Instance.new("BillboardGui")
+                gui.Name = "ESP"
+                gui.Adornee = head
+                gui.AlwaysOnTop = true
+                gui.Size = UDim2.new(0, 100, 0, 20)
+                gui.StudsOffset = Vector3.new(0, 2.5, 0)
+                gui.Parent = head
+
+                local label = Instance.new("TextLabel")
+                label.Size = UDim2.new(1, 0, 1, 0)
+                label.BackgroundTransparency = 1
+                label.Text = player.Name
+                label.TextColor3 = Color3.fromRGB(0, 255, 0)
+                label.TextStrokeTransparency = 0.5
+                label.Font = Enum.Font.SourceSansBold
+                label.TextScaled = true
+                label.Parent = gui
+            end)
+        end
+
+        for _, player in pairs(Players:GetPlayers()) do
+            criarESP(player)
+        end
+
+        Players.PlayerAdded:Connect(criarESP)
+    end
+})
+
+MainTab:CreateButton({
+    Name = "ESP Inimigos com Itens",
+    Callback = function()
+        local function getItemsText(player)
+            local items = {}
+            if player.Character then
+                for _, tool in pairs(player.Character:GetChildren()) do
+                    if tool:IsA("Tool") then
+                        table.insert(items, tool.Name)
+                    end
+                end
+            end
+            local backpack = player:FindFirstChildOfClass("Backpack")
+            if backpack then
+                for _, tool in pairs(backpack:GetChildren()) do
+                    if tool:IsA("Tool") then
+                        table.insert(items, tool.Name)
+                    end
+                end
+            end
+            return table.concat(items, ", ")
+        end
+
+        local function criarESP(player)
+            if player == Players.LocalPlayer or player.Team == Players.LocalPlayer.Team then return end
+
+            player.CharacterAdded:Connect(function(character)
+                local head = character:WaitForChild("Head", 10)
+                if not head then return end
+                if head:FindFirstChild("ESP_Inimigo") then
+                    head.ESP_Inimigo:Destroy()
+                end
+
+                local gui = Instance.new("BillboardGui")
+                gui.Name = "ESP_Inimigo"
+                gui.Adornee = head
+                gui.AlwaysOnTop = true
+                gui.Size = UDim2.new(0, 200, 0, 30)
+                gui.StudsOffset = Vector3.new(0, 3, 0)
+                gui.Parent = head
+
+                local label = Instance.new("TextLabel")
+                label.Size = UDim2.new(1, 0, 1, 0)
+                label.BackgroundTransparency = 1
+                label.TextColor3 = Color3.fromRGB(255, 0, 0)
+                label.TextStrokeTransparency = 0.5
+                label.Font = Enum.Font.SourceSansBold
+                label.TextScaled = true
+                label.Parent = gui
+
+                RunService.RenderStepped:Connect(function()
+                    if player and player.Character and player.Character:FindFirstChild("Head") then
+                        label.Text = player.Name .. " | Itens: " .. getItemsText(player)
+                    end
+                end)
+            end)
+        end
+
+        for _, plr in pairs(Players:GetPlayers()) do
+            criarESP(plr)
+        end
+        Players.PlayerAdded:Connect(criarESP)
+    end
+})
+
+MainTab:CreateToggle({
+    Name = "fly",
+    CurrentValue = false,
+    Flag = "FlyToggle",
+    Callback = function(Value)
+        if _G.ToggleFly then
+            _G.ToggleFly(Value)
+        end
+    end,
+})
+
+MainTab:CreateToggle({
+    Name = "noclip",
+    CurrentValue = false,
+    Flag = "NoclipToggle",
+    Callback = function(Value)
+        toggleNoclip(Value)
+    end,
+})
+
+MainTab:CreateToggle({
+    Name = "godmode beta",
+    CurrentValue = false,
+    Flag = "GodModeToggle",
+    Callback = function(Value)
+        toggleGodMode(Value)
+    end,
+})
+
+MainTab:CreateToggle({
+    Name = "Aimbot (Outro Time)",
+    CurrentValue = false,
+    Flag = "AimbotToggle",
+    Callback = function(Value)
+        toggleAimbot(Value)
+    end,
+})
+
+MainTab:CreateSlider({
+    Name = "walkspeed",
+    Range = {0, 100},
+    Increment = 10,
+    Suffix = "WS",
+    CurrentValue = 20,
+    Flag = "walkspeed",
+    Callback = function(Value)
+        local character = player.Character
+        if character then
+            local humanoid = character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid.WalkSpeed = Value
+            end
+        end
+    end,
+})
